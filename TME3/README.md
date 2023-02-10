@@ -77,7 +77,7 @@ produit l'affichage ci-dessous dans le terminal:
     Average:		1.058s		0.491s		0.567s
     --------------------------------------------------------------------
 
-### 1.3 
+### 1.3
 
 En diminuant le quantum, cela signifie que les processus seront soumis à des interruptions plus fréquentes pour laisser la possibilité à d'autres processus d'être exécutés.
 
@@ -113,21 +113,25 @@ En effet en augmentant le quantum à 300 (très excessif), on remarque que le te
 
 ## 2. ECRITURE D'UN NOUVEL ALGORITHME D'ORDONNANCEMENT SJF
 
-### 2.1 
+### 2.1
 
 Il suffit de parcourir la table de processus et trouver le processus avec le plus petit temps d'exécution.
 
     int SJFElect(void) {
-        int p;
-        int min_time = Tproc[0].exec_time;
+      int p=0;
+      double min_time = Tproc[0].duration;
 
-        for(int i=0; i < MAXPROC; i++){
-            //!!vérifie si Tproc[i] est prête à être exécuter
-            if ((Tproc[i].exec_time < min_time) && Tproc[i].flag != RUN){
-            p = i;
-            }
+      printf("SJF Election !\n");
+
+      for(int i=0; i < MAXPROC; i++){
+        //!!vérifie si Tproc[i] est prête à être exécuter
+        if ((Tproc[i].duration < min_time) && Tproc[i].flag != RUN){
+          p = i;
+          min_time = Tproc[i].duration;
         }
-        return p;	
+      }
+
+      return p;
     }
 
-### 2.2 
+### 2.2
