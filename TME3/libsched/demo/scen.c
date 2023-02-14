@@ -9,7 +9,7 @@ void ProcLong(int *);
 void ProcCourt(int *);
 
 // Exemple de processus long (une simple bouble),
-// Chaque processus long crï¿½e a son tour 4 processus courts
+// Chaque processus long crée a son tour 4 processus courts
 //
 void ProcLong(int *pid) {
   long i;
@@ -43,14 +43,14 @@ void ProcCourt(int *pid) {
 
 
 // Exemples de primitive d'election definie par l'utilisateur
-// Remarques : les primitives d'election sont appelï¿½es directement
-//             depuis la librairie. Elles ne sont appï¿½lï¿½es que si au
-//             moins un processus est ï¿½ l'etat pret (RUN)
+// Remarques : les primitives d'election sont appelées directement
+//             depuis la librairie. Elles ne sont appélées que si au
+//             moins un processus est à l'etat pret (RUN)
 //             Ces primitives manipulent la table globale des processus
-//             dï¿½finie dans sched.h
+//             définie dans sched.h
 
 
-// Election alï¿½atoire
+// Election aléatoire
 int RandomElect(void) {
   int i;
 
@@ -64,24 +64,12 @@ int RandomElect(void) {
 }
 
 
-// Election de SJF "Shortest Job Fisrt" 
+// Election de SJF "Shortest Job Fisrt"
 int SJFElect(void) {
-  int p=0;
-  double min_time = Tproc[0].duration;
+  int p;
 
-  printf("SJF Election !\n");
+  /* Choisir le processus p  - A ecrire en TP */
 
-  for(int i=0; i < MAXPROC; i++){
-    double tmp = Tproc[i].duration;
-    printf("Tproc[%d].flag = %d\n", i, Tproc[i].flag);
-
-    //!!vÃ©rifie si Tproc[i] est prÃªte Ã  Ãªtre exÃ©cuter
-    if (Tproc[i].flag == RUN && (tmp < min_time)){
-      printf("tmp = %f p=%d------------------------------\n", tmp, i);
-      p = i;
-      min_time = tmp;
-    }
-  }
   return p;	
 }
 
@@ -100,22 +88,17 @@ int main (int argc, char *argv[]) {
   int i;
   int *j;  
 
-  // Crï¿½er les processus long
+  // Créer les processus long
   for  (i = 0; i < 2; i++) {
     j = (int *) malloc(sizeof(int));
     *j= i;
     CreateProc((function_t)ProcLong,(void *)j, 80);
   }
 
-  // Crï¿½er les processus court
-  for  (i = 0; i < 2; i++) {
-    j = (int *) malloc(sizeof(int));
-    *j= i;
-    CreateProc((function_t)ProcCourt,(void *)j, 10);
-  }
+
 
   // Definir une nouvelle primitive d'election avec un quantum de 0.5 seconde
-  SchedParam(NEW, 0.5, SJFElect);
+  SchedParam(NEW, 0.5, RandomElect);
 
   // Lancer l'ordonnanceur en mode non "verbeux"
   sched(0);     
