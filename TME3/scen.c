@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <malloc.h>
-#include <sched.h>
+#include "libsched/src/sched.h"
 
 #define LONGTIME 8E8
 void ProcLong(int *);
@@ -64,16 +64,25 @@ int RandomElect(void) {
 }
 
 
-// Election de SJF "Shortest Job Fisrt" 
+// Election de SJF "Shortest Job Fisrt"
 int SJFElect(void) {
   int p=0;
-  double min_time = Tproc[0].duration;
+  double min_time;
+  int i = 0;
+
+  //on cherche le premier processus prêt pour soutirer sa durée
+  do{
+    if(Tproc[i].flag == RUN){
+      min_time = Tproc[i].duration;
+    }
+    i++;
+  }while(i<MAXPROC);
 
   printf("SJF Election !\n");
 
   for(int i=0; i < MAXPROC; i++){
     double tmp = Tproc[i].duration;
-    printf("Tproc[%d].flag = %d\n", i, Tproc[i].flag);
+    //printf("Tproc[%d].flag = %d\n", i, Tproc[i].flag);
 
     //!!vérifie si Tproc[i] est prête à être exécuter
     if (Tproc[i].flag == RUN && (tmp < min_time)){
@@ -82,7 +91,7 @@ int SJFElect(void) {
       min_time = tmp;
     }
   }
-  return p;	
+  return p;
 }
 
 // Approximation SJF
@@ -98,7 +107,7 @@ int ApproxSJF(void) {
 
 int main (int argc, char *argv[]) {
   int i;
-  int *j;  
+  int *j;
 
   // Cr�er les processus long
   for  (i = 0; i < 2; i++) {
@@ -107,18 +116,18 @@ int main (int argc, char *argv[]) {
     CreateProc((function_t)ProcLong,(void *)j, 80);
   }
 
-  // Cr�er les processus court
-  for  (i = 0; i < 2; i++) {
-    j = (int *) malloc(sizeof(int));
-    *j= i;
-    CreateProc((function_t)ProcCourt,(void *)j, 10);
-  }
+  // // Cr�er les processus court
+  // for  (i = 0; i < 2; i++) {
+  //   j = (int *) malloc(sizeof(int));
+  //   *j= i;
+  //   CreateProc((function_t)ProcCourt,(void *)j, 10);
+  // }
 
   // Definir une nouvelle primitive d'election avec un quantum de 0.5 seconde
-  SchedParam(NEW, 0.5, SJFElect);
+  SchedParam(NEW, 0.3, SJFElect);
 
   // Lancer l'ordonnanceur en mode non "verbeux"
-  sched(0);     
+  sched(0);
 
   // Imprimer les statistiques
   PrintStat();
