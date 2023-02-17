@@ -68,27 +68,23 @@ int RandomElect(void) {
 int SJFElect(void) {
   int p=0;
   double min_time;
-  int i = 0;
 
-  //on cherche le premier processus prêt pour soutirer sa durée
-  do{
+  //on cherche le premier processus prêt pour initialiser min_time
+  for(int i=0; i<MAXPROC; i++){
     if(Tproc[i].flag == RUN){
       min_time = Tproc[i].duration;
+      p=i;
+      break;
     }
-    i++;
-  }while(i<MAXPROC);
+  }
 
   printf("SJF Election !\n");
 
   for(int i=0; i < MAXPROC; i++){
-    double tmp = Tproc[i].duration;
-    //printf("Tproc[%d].flag = %d\n", i, Tproc[i].flag);
-
     //!!vérifie si Tproc[i] est prête à être exécuter
-    if (Tproc[i].flag == RUN && (tmp < min_time)){
-      printf("tmp = %f p=%d------------------------------\n", tmp, i);
+    if (Tproc[i].flag == RUN && Tproc[i].duration < min_time){
       p = i;
-      min_time = tmp;
+      min_time = Tproc[i].duration;
     }
   }
   return p;
@@ -97,9 +93,38 @@ int SJFElect(void) {
 // Approximation SJF
 int ApproxSJF(void) {
   int p;
+  int elu = GetElecProc();
+  int prio_max;
 
-  /* Choisir le processus p - A ecrire en TP */
+  //on traite le cas ou un processus a été élu
+  if(elu != -1){
+    //baisser sa priorité en soustrayant le nb de quantums de tmp consommé
+    Tproc[elu].prio -= Tproc[elu].ncpu;
 
+    //si prio<0 on le réinitialise a MINPRIO ce qui permet de réduire priorité
+    //des processus qui ont consommé plus que les autres
+    if(Tproc[elu].prio < 0){
+      Tproc[elu].prio = MINPRIO;
+    }
+  }
+
+  //on cherche le premier processus prêt pour initialiser prio_max
+  for(int i=0; i<MAXPROC; i++){
+    if(Tproc[i].flag == RUN){
+      prio_max = Tproc[i].prio;
+      p=i;
+      break;
+    }
+  }
+
+  printf("ApproxSJF Election !\n");
+
+  for (int i = 0; i < MAXPROC; i++) {
+    if (Tproc[i].flag == RUN && Tproc[i].prio > prio_max) {
+      p = i;
+      prio_max = Tproc[i].prio;
+    }
+  }
   return p;
 }
 
@@ -116,15 +141,15 @@ int main (int argc, char *argv[]) {
     CreateProc((function_t)ProcLong,(void *)j, 80);
   }
 
-  // // Cr�er les processus court
-  // for  (i = 0; i < 2; i++) {
-  //   j = (int *) malloc(sizeof(int));
-  //   *j= i;
-  //   CreateProc((function_t)ProcCourt,(void *)j, 10);
-  // }
+  // Cr�er les processus court
+  for  (i = 0; i < 2; i++) {
+    j = (int *) malloc(sizeof(int));
+    *j= i;
+    CreateProc((function_t)ProcCourt,(void *)j, 10);
+  }
 
   // Definir une nouvelle primitive d'election avec un quantum de 0.5 seconde
-  SchedParam(NEW, 0.3, SJFElect);
+  SchedParam(NEW, 1, RandomElect);
 
   // Lancer l'ordonnanceur en mode non "verbeux"
   sched(0);
