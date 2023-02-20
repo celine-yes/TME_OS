@@ -1,13 +1,16 @@
 CFLAGS = -Wall -g
 CC = /usr/bin/gcc
 
-all: mgrep
+all: mgrep zombie
 
 mgrep: mgrep.o
 	$(CC) $(CFLAGS) -o mgrep mgrep.o
 
-mgrep.o: mgrep.c
-	$(CC) $(CFLAGS) -c mgrep.c
+zombie: zombie.o
+	$(CC) $(CFLAGS) -o zombie zombie.o
+
+zombie.o: zombie.c
+	$(CC) $(CFLAGS) -c zombie.c
 
 clean:
-	rm -f mgrep mgrep.o
+	rm -f mgrep mgrep.o zombie zombie.o
