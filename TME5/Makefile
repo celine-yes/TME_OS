@@ -9,7 +9,7 @@ arbre: arbre.o
 arbre.o: arbre.c
 	$(CC) $(CFLAGS) -c arbre.c
 
-aminishell: minishell.o
+minishell: minishell.o
 	$(CC) $(CFLAGS) -o minishell minishell.o
 
 minishell.o: minishell.c
