@@ -56,11 +56,15 @@
 void emetteur(int mess){
   while(1){
     P(EMET);
-    printf("aaaaaaaaaaaaaaaaaaaaa\n");
-
+    P(SEMNR);
     sp->nb_recepteurs = 0;
+    V(SEMNR);
+    printf("Emetteur %d a déposé le message %d\n", getpid(), mess);
     sp->mess = mess;
-    V(RECEP);
+    
+    for(int i=0; i<NR ; i++){
+      V(RECEP+i);
+    }
   }
 }
 
@@ -71,16 +75,19 @@ void emetteur(int mess){
   void recepteur(int id){
   int m;
   while(1){
-    printf("ooooooooooouuuuuuuuuuuuuuuu\n");
+    
     P(RECEP + id);
-    printf("ooooooooooo\n");
     m = sp->mess;
     printf("Recepteur %d a lu la valeur %d\n", getpid(), m);
+
     P(SEMNR);
     sp->nb_recepteurs++;
+    //printf("Recepteur %d : nb_recepteurs = %d\n", sp->nb_recepteurs);
     V(SEMNR);
+
+    //si tous les récepteurs ont lu les message, on débloque l'émetteur
     if(sp->nb_recepteurs == NR){
-      printf("bbbbbbbbbbbbbbb\n");
+      printf("Emetteur libéré\n");
       V(EMET);
     }
   }
@@ -125,7 +132,6 @@ int main() {
     } else if (pid == 0){
         /* processus fils */
         emetteur(i+1);
-        printf("iciiiiiiiiiiii\n");
         exit(EXIT_SUCCESS);
     } else {
         /* processus pere */
@@ -143,12 +149,15 @@ int main() {
       exit(1);
     } else if (pid == 0){
         /* processus fils */
-        recepteur(i+1);
+        recepteur(i);
         exit(EXIT_SUCCESS);
     } else {
         /* processus pere */
         recep_pid[i] = pid;
     }
+  }
+  for(int i=0; i<NR; i++){
+    printf("recep_pid[%d] = %d\n", i, recep_pid[i]);
   }
 
 

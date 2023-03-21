@@ -17,14 +17,23 @@
 
 /* definition des semaphores */ 
 
-	// A completer
+  #define SEMNR      0
+  #define EMET       1
+  int RECEP[NR];
+  int CASE[NMAX];
+  
 
 /************************************************************/
 
 /* definition de la memoire partagee */ 
+  typedef struct {
+    int id;
+    int ir;
+    int * mess;
+    int * nb_recepteurs;
+  } t_segpart;
 
-	// A completer
-
+t_segpart *sp;
 /************************************************************/
 
 /* variables globales */ 
@@ -47,8 +56,22 @@
 
 /* fonction EMETTEUR */ 
 
-	// A completer - contient les instructions executees
-        // par un emetteur
+
+void emetteur(int mess){
+  int i;
+  while(1){
+    P(EMET);
+    P(SEMNR);
+    sp->nb_recepteurs = 0;
+    V(SEMNR);
+    i = sp->id;
+    printf("Emetteur %d a déposé le message %d\n", getpid(), mess);
+    sp->mess[i] = mess;
+    for(int i=0; i<NR ; i++){
+      V(RECEP+i);
+    }
+  }
+}
 
 /************************************************************/
 
