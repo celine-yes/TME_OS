@@ -61,7 +61,7 @@ void emetteur(int mess){
     V(SEMNR);
     printf("Emetteur %d a déposé le message %d\n", getpid(), mess);
     sp->mess = mess;
-    
+
     for(int i=0; i<NR ; i++){
       V(RECEP+i);
     }
@@ -75,7 +75,7 @@ void emetteur(int mess){
   void recepteur(int id){
   int m;
   while(1){
-    
+
     P(RECEP + id);
     m = sp->mess;
     printf("Recepteur %d a lu la valeur %d\n", getpid(), m);
