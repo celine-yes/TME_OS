@@ -1,5 +1,7 @@
 /* Diffusion tampon N case */
 
+/* Ne marche pas :/ */
+
   #include <stdio.h>
   #include <unistd.h>
   #include <signal.h>
@@ -17,10 +19,10 @@
 
 /* definition des semaphores */
 
-  #define SEMNR      0
-  int EMET[NE];
-  int RECEP[NR];
-  int CASE[NMAX];
+  #define SEM_EMET      0
+  #define SEM_RECEP     1
+  int CASE_EMET[NMAX];
+  int CASE_RECEP[NMAX];
 
 
 /************************************************************/
@@ -29,8 +31,11 @@
   typedef struct {
     int id;
     int ir;
-    int * mess;
-    int * nb_recepteurs;
+    int nb_caseVide;  // si =0 alors les émetteurs sont bloqués
+                      // si =NMAX alors les récepteurs sont bloqués
+    int * nb_recepteurs;//nb de recepteurs ayant lu le message dans case i
+    int ** lu;  // enregistre les messages lus par chaque récepteur
+    int * mess; // tableau qui stocke les messages
   } t_segpart;
 
 t_segpart *sp;
@@ -49,6 +54,8 @@ t_segpart *sp;
 	for (i = 0; i < NR; i++) kill(recep_pid[i], SIGKILL);
 	det_sem();
 	det_shm((char *)sp);
+  free(sp->mess);
+  free(sp->nb_recepteurs);
 
   }
 
@@ -57,53 +64,72 @@ t_segpart *sp;
 /* fonction EMETTEUR */
 
 
-  void emetteur(int ind) {
+void emetteur(int ind) {
     int mess = ind;
-    while(1){
-      int i;
-      P(EMET[ind]);
-      i = sp->id;
-      sp->id = (sp->id + 1) % NMAX;
-      P(CASE[i]);
+    int pos;
+    while (1) {
+        P(SEM_EMET);  // Attend qu'une case soit vide
 
-      sp->mess[ind] = mess;
-      sp->nb_recepteurs[ind] = 0;
-      printf("Emetteur %d a déposé le message %d dans la case %d\n", getpid(), mess, ind);
-      V(EMET[ind]);
-      V(CASE[ind]);
-      for(int i=0; i < NR; i++){
-        V(RECEP[i]);
-      }
+        pos = sp->id % NMAX;
+
+        P(CASE_EMET[pos]);  // Verrouille la case pour écrire
+
+        sp->id++;
+        sp->mess[pos] = mess;          // écriture
+        sp->nb_recepteurs[pos] = 0;    // réinitialisation
+
+        printf("Emetteur %d a déposé le message %d dans la case %d\n", getpid(), mess, pos);
+
+        V(CASE_EMET[pos]);  // Déverrouille la case
+        for(int i=0; i<NR; i++){
+          V(SEM_RECEP);  // Un message est maintenant disponible à lire
+        }
     }
-  }
+}
 
-/************************************************************/
+/******            V(CASE_RECEP[pos]);******************************************************/
 
 /* fonction RECEPTEUR */
 
-  void recepteur(int ind){
+void recepteur(int ind) {
     int m;
-    while(1){
-      int case_id;
-      P(RECEP[ind]);
-      case_id = sp->ir;
-      sp->ir = (sp->ir + 1) % NMAX;
-      m = sp->mess[case_id];
-      printf("Recepteur %d a lu la valeur %d de la case %d\n", getpid(), m, case_id);
+    int pos;
 
-      P(CASE[case_id]);
-      P(RECEP[ind]);
-      P(SEMNR);
-      sp->nb_recepteurs[case_id]++;
-      V(SEMNR);
+    while (1) {
+        //P(SEM_RECEP);  // Attend qu'un message soit disponible à lire
 
-      if(sp->nb_recepteurs[case_id] == NR){
+        pos = sp->ir % NMAX;
+        //printf("pos = %d\n", pos);
+        P(CASE_RECEP[pos]);  // Verrouille la case pour lire
 
-        printf("Emetteur de la case %d libéré\n", case_id);
-        V(CASE[case_id]);
-      }
+        // Vérifie si le récepteur a déjà lu le message
+        if (sp->lu[ind][pos] == 0) {
+            sp->nb_recepteurs[pos]++;
+            m = sp->mess[pos];
+            sp->lu[ind][pos] = 1; // Marque le message comme lu
+
+            printf("Recepteur %d a lu la valeur %d dans la case %d\n", getpid(), m, pos);
+
+            // Si tous les récepteurs ont lu le message de cette case
+            // le dernier qui le lit libère la case pour un émetteur
+            if (sp->nb_recepteurs[pos] == NR) {
+                sp->ir++;
+
+                //V(SEM_EMET);  // Libère une case vide pour un émetteur
+            } else {
+                //V(SEM_RECEP);  // Un autre récepteur peut lire ce message
+                V(CASE_RECEP[pos]);  // Déverrouille la case
+                continue;
+            }
+        } else {
+            // Si le récepteur a déjà lu le message, libère simplement le sémaphore
+            //V(SEM_RECEP);
+        }
+
+        V(CASE_RECEP[pos]);  // Déverrouille la case
     }
-  }
+}
+
 
 /************************************************************/
 
@@ -115,16 +141,12 @@ int main() {
 
     //suite définition des sémaphores
 
-    for(int i = 0; i < NE; i++){
-      EMET[i] = i+1;
-    }
-
-    for(int i = 0; i < NR; i++){
-      RECEP[i] = i + 1 + NE;
+    for(int i = 0; i < NMAX; i++){
+      CASE_EMET[i] = i+2;
     }
 
     for(int i = 0; i < NMAX; i++){
-      CASE[i] = i + 1 + NE + NR;
+      CASE_RECEP[i] = i + 2 + NMAX;
     }
 /* Creation du segment de memoire partagee */
 
@@ -135,27 +157,29 @@ int main() {
 
     sp->id = 0;
     sp->ir = 0;
+    sp->nb_caseVide = NMAX;
+    sp->nb_recepteurs = malloc(sizeof(int) * NMAX);
+    sp->mess = malloc(sizeof(int) * NMAX);
+    sp->lu = malloc(sizeof(int *) * NR);
+    for (int i = 0; i < NR; i++) {
+        sp->lu[i] = calloc(NMAX, sizeof(int));
+    }
 
 /* creation des semaphores */
 
-    if ((semid = creer_sem(NR + NMAX + NE + 1)) == -1) {
+    if ((semid = creer_sem(NR + NMAX + NE + 2)) == -1) {
         perror("creer_sem");
         exit(1);
     }
 
 /* initialisation des semaphores */
 
-    init_un_sem(SEMNR, 1);
-    for(int i = 0; i < NE; i++){
-      init_un_sem(EMET[i], NE);
-    }
-    for(int i = 0; i < NR; i++){
-      init_un_sem(RECEP[i], 0);
-    }
+    init_un_sem(SEM_EMET, NMAX);
+    init_un_sem(SEM_RECEP, NR);
     for(int i = 0; i < NMAX; i++){
-      init_un_sem(CASE[i], NR);
+      init_un_sem(CASE_EMET[i], 1);
+      init_un_sem(CASE_RECEP[i], NR);
     }
-
 /* creation des processus emetteurs */
 
     for (int i = 0; i < NE; i++){
