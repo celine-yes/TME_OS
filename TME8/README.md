@@ -7,9 +7,9 @@
 Après l'insertion d'une donnée de taille maximum dans le tas. On devrait avoir:  
 
       ------------------------------------------------------------
-     | TD = 127 |              Donnée            | TL = 0 |  -1   |     libre = 126
+     | TD = 127 |                  Donnée                         |     libre = 128
       ------------------------------------------------------------
-    0         1                                         126     127
+    0         1                                                  127
 
 ### 1.2
 
