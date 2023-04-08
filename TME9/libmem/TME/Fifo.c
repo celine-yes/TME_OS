@@ -23,17 +23,17 @@ int initFifo(Swapper*swap){
 unsigned int fifoChoose(Swapper*swap){
 	/* A ecrire en TME */
 	unsigned int res = swap->private_data;
-	printf("frame_nb = %d\n", swap->frame_nb);
-	printf("res = %d\n", swap->private_data);
-	if(res < swap->frame_nb){
-		*swap->private_data = swap->private_data++;
+	//printf("frame_nb = %d\n", swap->frame_nb);
+	//printf("res = %d\n", swap->private_data);
+	if(res < swap->frame_nb - 1){
+		 *(swap->private_data)++;
 	}
 	else{
-		*swap->private_data = 0;
+		swap->private_data = 0;
 	}
 	return res;
 }
 
 void finalizeFifo(Swapper*swap){
-	/* A ecrire en TME */
+	free(swap->private_data);
 }
